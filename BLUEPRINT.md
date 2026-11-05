@@ -65,16 +65,37 @@ Memory Runtime (emulated 6502 + ROPE/AGC) → Pascal / Fortran Compute
 - **I/O abstraction (video / input / disk)** — PARTIAL: the output
   port exists; input and disk channels are Stage 1 alongside the queue.
 
-### Compute layer (Pascal / Fortran)
-- **Fortran modules (legacy algorithms)** — the owner's Fortran
-  kernels exist in his other repos (e.g. preeny-sovereign's
-  `sovereign_math` / `sovereign_vector`); this build's Fortran stage
-  is verifiable on this machine.
-- **Pascal kernels** — RESOLVED (owner, 2026-11-04): the poster names
-  CUDA; the owner replaced it with Pascal — "that's actually better" —
-  matching his standing rule that his kernels run Pascal instead of
-  CUDA. The compute layer is Fortran + Pascal; the GPU half is
-  Jetson-stage.
+### Compute layer (Pascal controls, Vulkan executes — CUDA-free)
+The owner's layering (2026-11-04), which replaces the poster's
+CUDA/Fortran box:
+
+- **Pascal: the compute language and kernel definitions.** Numerical
+  algorithms, tensor operations, transformations, and simulation
+  logic are written in Pascal. The system is CUDA-free at the
+  application level: Pascal controls compute, Vulkan executes it —
+  not CUDA calls wrapped in Pascal.
+- **The critical component: a Pascal-to-SPIR-V compiler / lowering
+  path.** Without it, ordinary Free Pascal code runs on the ARM64 CPU
+  rather than the GPU. The lowering covers a restricted kernel
+  subset — fixed bounds, pure arithmetic, no heap, no strings, no
+  I/O — which is the shape the owner's kernels already have. First
+  corpus: his Pascal arithmetic kernels for the ternary model.
+  Routes: a direct SPIR-V emitter from the subset's IR, with a
+  GLSL + glslang bridge as a bootstrap; both end at the same
+  artifact, a validated SPIR-V module.
+- **Vulkan: GPU compute, rendering, and synchronization.** Compute
+  shaders compiled to SPIR-V execute the GPU workloads; the render
+  layer below is the same API's other half.
+- **Fortran: optional numerical routines** (CPU-side). The owner's
+  Fortran kernels exist in his other repos (e.g. preeny-sovereign's
+  `sovereign_math` / `sovereign_vector`).
+- **ROPE/AGC: deterministic execution and instruction control.**
+  Kernel launches are commands in the runtime's stream (through the
+  $C000 queue), issued by the deterministic layer — not host-side
+  imperative calls.
+- **Jetson unified memory:** shared physical memory with explicit
+  buffer ownership and synchronization; ownership is recorded, the
+  same discipline as the ledger.
 
 ### Render layer (Vulkan)
 - **GPU command translation (ROPE/AGC → Vulkan)** — MISSING; the
@@ -106,9 +127,12 @@ Jetson; Stage 6 lands there.
 4. **Front end** — PureBasic parser for the magazine-listing subset →
    6502 IR → Stage-1 runtime: the first listing executes end to end.
 5. **Lowering** — 6502 IR → ROPE/AGC, proven on the corpus's kernels.
-6. **Compute + render + Jetson** — Fortran modules and Pascal kernels
-   wired to the runtime; command-queue → Vulkan translation;
-   deployment.
+6. **Compute + render + Jetson** — the Pascal-to-SPIR-V lowering
+   (subset compiler; the ternary kernels as its first corpus),
+   optional Fortran routines, Vulkan compute + render executing the
+   SPIR-V, unified-memory buffer ownership, deployment. Toolchain
+   note: no fpc / glslang / SPIR-V tools / Vulkan on this VM yet —
+   Jetson-stage provisioning.
 
 Every stage ends at the same bar as the rest of the owner's work:
 verified by execution, staged claims in STATUS.md, nothing published
