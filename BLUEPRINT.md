@@ -97,6 +97,37 @@ CUDA/Fortran box:
   buffer ownership and synchronization; ownership is recorded, the
   same discipline as the ledger.
 
+### What the Vulkan end needs (Stage 6 bill of materials)
+
+Everything except the seam is off the shelf; nothing on this list
+needs a vendor account or token.
+
+1. **The driver** — already on the Jetson: JetPack/L4T ships the
+   NVIDIA Vulkan ICD and loader. No CUDA toolkit anywhere in the
+   chain.
+2. **The host binding** — a small native host process owns the
+   Vulkan device and takes orders from the runtime (the ACE pattern:
+   the harness dispatches, the native end executes). The open-source
+   candidates the owner pointed at: **Vulkan-Hpp** (KhronosGroup,
+   header-only C++ bindings) or **Silk.NET** (.NET Foundation, C#
+   bindings). C++/Vulkan-Hpp keeps the host dependency-free; C#
+   pulls a .NET runtime onto the Jetson. Owner's call.
+3. **The SPIR-V gate** — glslang (the bootstrap compiler) and
+   SPIRV-Tools' `spirv-val`: every module the Pascal lowering emits
+   is validated before the host loads it. Verified artifacts only.
+4. **The seam (ours to design)** — the command vocabulary over the
+   runtime's GPU queue. The CPU side already exists (Stage 1: writes
+   to $C100–$CFFF drain as ordered {address, byte} commands). The
+   host side needs the opcode table those bytes map to: buffer
+   create/copy, pipeline bind, dispatch, present — a display list,
+   decided by ROPE/AGC, executed by Vulkan.
+5. **Buffers on unified memory** — host-visible, host-coherent
+   allocations so the Pascal/BEAM side and the GPU share physical
+   memory with no copies; each buffer carries an ownership record
+   (which layer owns it, when ownership transfers) and
+   synchronization is explicit (fences / timeline semaphores),
+   never assumed.
+
 ### Render layer (Vulkan)
 - **GPU command translation (ROPE/AGC → Vulkan)** — MISSING; the
   $C000 command queue is its input contract, designable and testable
