@@ -183,7 +183,10 @@ cloud services of any kind.
 - **GPU command translation (ROPE/AGC → Vulkan)** — MISSING; the
   $C000 command queue is its input contract, designable and testable
   at the queue level on this machine.
-- **Rendering pipeline / frame output** — Jetson-gated.
+- **Rendering pipeline / frame output** — Vulkan renders offscreen
+  into a shared buffer; presentation is PureBasic's (owner's
+  ruling, 2026-11-04: "PureBasic provides the graphics" — his
+  existing PureBasic stack, the Voxel800 line). No swapchain build.
 
 ### System services
 - File / asset I/O (the sbx trees), input, timing & sync (the step
