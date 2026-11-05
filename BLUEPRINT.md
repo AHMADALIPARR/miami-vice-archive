@@ -113,12 +113,25 @@ ARM64 host runtime (BEAM runs there), unified memory, containerized
 deployment (sbx + the machine). Nothing in Stages 1–5 depends on the
 Jetson; Stage 6 lands there.
 
+## Division of labor (owner, 2026-11-04)
+
+- **The owner's end: Stage 6** — the Pascal-to-SPIR-V path and the
+  Vulkan execution layer on the Jetson (C# and C++ on the Vulkan side,
+  from an open-source repo he will name).
+- **Muse's carve: Stages 1–5** — runtime, verification + intake,
+  ROPE/AGC core, front end, lowering, built and verified here.
+
 ## Stage plan
 
-1. **Memory & container runtime to the poster's map** — banked 6502
-   runtime in this repo (CPU core lineage from ace6502, provenance
-   recorded), $C000 I/O + GPU command queue, container format.
-   Verified by machine tests.
+1. **Memory & container runtime to the poster's map** — BUILT
+   2026-11-04: `runtime/` holds `mv6502` (CPU core descended from
+   ace6502; banked window over $0200–$7FFF with the bank register at
+   $C000, dedicated zero page and stack, runtime RAM $8000–$BFFF,
+   GPU command queue window $C100–$CFFF, vector shadow at the top of
+   I/O space) and `mv_asm`. Verified: suite 4/4 with 16 checks — the
+   11 ace6502 CPU regression vectors unchanged, plus bank isolation,
+   bank-register wrap and readback, queue capture, zero-page and
+   runtime-region behaviour.
 2. **Verification service + archive intake** — checksum/CRC gate;
    a listing enters only with a provenance record and a passing sum.
 3. **ROPE/AGC core** — assembler for the corpus's AGC subset, linker
