@@ -3,7 +3,7 @@
 The specification is the poster (`docs/architecture-poster.jpg`): archive
 source listings enter at the left, are lowered through a 6502 IR into
 ROPE/AGC assembly, execute in a container and memory runtime, and reach
-Fortran/CUDA compute and Vulkan rendering on the Jetson. This document
+Fortran/Pascal compute and Vulkan rendering on the Jetson. This document
 decomposes the poster into components and records, for each one, what
 already exists, what is partial, and what is missing. "Half of it
 already exists" is the owner's assessment; the map below is the audit
@@ -13,7 +13,7 @@ of that claim against the repos on disk.
 
 PureBasic (source from Miami Vice Magazine) → 6502 Semantic Lowering
 (compatible 6502 IR) → ROPE / AGC Assembly (custom ISA) → Container &
-Memory Runtime (emulated 6502 + ROPE/AGC) → CUDA / Fortran Compute
+Memory Runtime (emulated 6502 + ROPE/AGC) → Pascal / Fortran Compute
 (numerics, DSP, AI, media) → Vulkan Rendering (graphics, video, UI).
 
 ## Component map
@@ -65,16 +65,16 @@ Memory Runtime (emulated 6502 + ROPE/AGC) → CUDA / Fortran Compute
 - **I/O abstraction (video / input / disk)** — PARTIAL: the output
   port exists; input and disk channels are Stage 1 alongside the queue.
 
-### Compute layer (CUDA / Fortran)
+### Compute layer (Pascal / Fortran)
 - **Fortran modules (legacy algorithms)** — the owner's Fortran
   kernels exist in his other repos (e.g. preeny-sovereign's
   `sovereign_math` / `sovereign_vector`); this build's Fortran stage
   is verifiable on this machine.
-- **CUDA kernels** — POSTER vs DOCTRINE, flagged not resolved: the
-  poster names CUDA; the owner's standing rule is that his kernels run
-  Pascal instead of CUDA. The compute stage proceeds Fortran-first;
-  the GPU half is Jetson-stage and follows the owner's call, not the
-  poster's label.
+- **Pascal kernels** — RESOLVED (owner, 2026-11-04): the poster names
+  CUDA; the owner replaced it with Pascal — "that's actually better" —
+  matching his standing rule that his kernels run Pascal instead of
+  CUDA. The compute layer is Fortran + Pascal; the GPU half is
+  Jetson-stage.
 
 ### Render layer (Vulkan)
 - **GPU command translation (ROPE/AGC → Vulkan)** — MISSING; the
@@ -106,8 +106,9 @@ Jetson; Stage 6 lands there.
 4. **Front end** — PureBasic parser for the magazine-listing subset →
    6502 IR → Stage-1 runtime: the first listing executes end to end.
 5. **Lowering** — 6502 IR → ROPE/AGC, proven on the corpus's kernels.
-6. **Compute + render + Jetson** — Fortran modules wired to the
-   runtime; command-queue → Vulkan translation; deployment.
+6. **Compute + render + Jetson** — Fortran modules and Pascal kernels
+   wired to the runtime; command-queue → Vulkan translation;
+   deployment.
 
 Every stage ends at the same bar as the rest of the owner's work:
 verified by execution, staged claims in STATUS.md, nothing published
