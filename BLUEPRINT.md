@@ -130,6 +130,13 @@ needs a vendor account or token.
 
 ### Stage 6 build-out — everything needed
 
+**Repository (owner's order, 2026-11-04):** Stage 6 is its own
+repo, `jetson-vulkan-host` (local), with the upstream source
+*extracted into it* — seven Khronos trees vendored under `vendor/`
+with pinned commits in its SOURCES.md (223 MB: Vulkan-Headers,
+Vulkan-Loader, Vulkan-Hpp, SPIRV-Headers, SPIRV-Tools, glslang,
+Vulkan-ValidationLayers). Its BUILD-PLAN.md carries the write list.
+
 **Fetch (all open source, no accounts, no tokens):**
 - Vulkan-Headers + Vulkan-Loader (KhronosGroup) — or the loader
   JetPack already ships; headers are the part to pin.
