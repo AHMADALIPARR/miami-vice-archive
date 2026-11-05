@@ -128,6 +128,50 @@ needs a vendor account or token.
    synchronization is explicit (fences / timeline semaphores),
    never assumed.
 
+### Stage 6 build-out — everything needed
+
+**Fetch (all open source, no accounts, no tokens):**
+- Vulkan-Headers + Vulkan-Loader (KhronosGroup) — or the loader
+  JetPack already ships; headers are the part to pin.
+- Vulkan-Hpp (KhronosGroup) for the C++ host, per the bill above.
+- glslang + SPIRV-Headers + SPIRV-Tools (KhronosGroup) — the
+  bootstrap compiler and the validator.
+- Vulkan-ValidationLayers (KhronosGroup) — development-time checks
+  on the host's own API usage.
+- Free Pascal for ARM64 — the Pascal kernels' compiler and the
+  lowering's front end.
+- A C++ compiler on the Jetson (gcc from JetPack suffices).
+
+**Write (the actual build, in dependency order):**
+1. *Device probe* — a throwaway program that opens the Orin GPU
+   through the loader and prints its properties and queue families.
+   Proves the driver path before anything is built on it.
+2. *The host daemon* (C++/Vulkan-Hpp) — instance, device, compute
+   queue, command pool, descriptor layout for storage buffers; a
+   control channel the BEAM harness drives (Unix socket, line
+   protocol — the ace-sovereign harness pattern).
+3. *The buffer manager* — host-visible/coherent pools plus the
+   ownership table: every buffer has an owning layer, a state, and
+   a transfer log; the GPU touches a buffer only under a recorded
+   transfer.
+4. *The SPIR-V gate + module registry* — spirv-val in the load
+   path; modules admitted by hash, once, into a registry mapping
+   hash → pipeline.
+5. *First workload* — the owner's ternary kernel as a compute
+   shader, dispatched over a buffer. Gate: GPU results equal the
+   Pascal CPU reference exactly (integer kernels — no tolerances).
+6. *The queue seam* — the opcode table for the runtime's GPU queue
+   (Stage 1 drains {address, byte} pairs): buffer create/copy,
+   pipeline bind, dispatch, present; a BEAM-side translator turns
+   the drained stream into host-daemon commands, deterministically.
+7. *Render half* — offscreen target with readback/capture first;
+   swapchain/display last, if at all.
+8. *Sync hardening* — fences/timeline semaphores wired to the
+   ownership table; no implicit waits.
+
+**Not needed:** CUDA toolkit, cuDNN, Nsight, vendor SDK accounts,
+cloud services of any kind.
+
 ### Render layer (Vulkan)
 - **GPU command translation (ROPE/AGC → Vulkan)** — MISSING; the
   $C000 command queue is its input contract, designable and testable
