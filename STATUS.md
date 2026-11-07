@@ -39,7 +39,18 @@
   zero page surviving bank switches, runtime-region round trip.
 - Next: Stage 2 (verification service + archive intake).
 
+## Software visual host (2026-11-07)
+
+- `visual/queue_renderer.py`: consumes the Stage-1 GPU queue format
+  (ordered {address, byte} writes) and produces a 320×240 PNG.
+  Opcode vocabulary: SET_COLOR, FILL_RECT, DRAW_LINE, CLEAR, TEXT,
+  PRESENT. Absolute addresses ignored; only write order matters.
+- `visual/sample_queue.py`: emits a branded command stream that
+  renders a near-black / brass / paper frame with the wordmark.
+- This is the software stand-in for the queue seam. The real Vulkan
+  host (Stage 6) remains the owner's carve in a separate repo.
+
 ## Repository state
 
-Working name `miami-vice-archive`. Local only; not pushed. License:
-the sovereign license in `LICENSE`, copied verbatim.
+Working name `miami-vice-archive`. License: the sovereign license in
+`LICENSE`, copied verbatim.
