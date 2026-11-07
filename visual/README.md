@@ -2,7 +2,8 @@
 
 Stage 1 already captures every write to `$C100–$CFFF` as an ordered
 `{address, byte}` list (`mv6502:gpu_queue/1`). This directory is the
-first host that consumes that list and produces a framebuffer.
+first host that consumes that list and produces framebuffer PNGs and
+an optional WAV.
 
 ## Command vocabulary
 
@@ -25,26 +26,42 @@ Sequential opcodes (absolute addresses ignored; only write order matters):
 | `0x0D` | DEFINE_SPRITE | id w h …pixels…                   | store sprite (palette indices) |
 | `0x0E` | DRAW_SPRITE   | id x y                            | blit stored sprite |
 | `0x0F` | BLIT          | x y w h …pixels…                  | immediate palette-index blit |
-| `0xFF` | PRESENT       | —                                 | flush PNG |
+| `0x10` | TONE          | freq_lo freq_hi dur_ms            | square-wave tone |
+| `0x11` | NOISE         | dur_ms                            | white noise |
+| `0xFF` | PRESENT       | —                                 | flush PNG (multiple = animation) |
 
-### Palette (index → color)
+### Palette
 
-| Index | Color   | RGB |
-|-------|---------|-----|
-| 0     | transparent | — |
-| 1     | brass   | `#d4a24c` |
-| 2     | paper   | `#e8e6dc` |
-| 3     | ink     | `#0e100e` |
-| 4     | neon    | `#ff4d8d` |
-| 5     | cyan    | `#4dd0e1` |
-| 6     | panel   | `#171c17` |
-| 7     | white   | `#ffffff` |
+| Index | Color | RGB |
+|-------|-------|-----|
+| 0 | transparent | — |
+| 1 | brass | `#d4a24c` |
+| 2 | paper | `#e8e6dc` |
+| 3 | ink | `#0e100e` |
+| 4 | neon | `#ff4d8d` |
+| 5 | cyan | `#4dd0e1` |
+| 6 | panel | `#171c17` |
+| 7 | white | `#ffffff` |
 
-Canvas is 320×240. Coordinates are 8-bit. Sprite/blit pixels are palette indices; 0 is skipped.
+Canvas is 320×240. Coordinates are 8-bit.
+
+## Animation
+
+Each `0xFF` PRESENT flushes the current canvas to a PNG. The first is
+`frame.png`; subsequent ones are `frame-2.png`, `frame-3.png`, etc.
+The sample emits four frames: a pulsing circle, a sprite that steps
+right, and a rising tone.
+
+## Sound
+
+`0x10` and `0x11` are collected in order and written to `sound.wav`
+(8-bit mono, 8000 Hz). Events play sequentially.
 
 ## 6502 program
 
-`draw_scene.erl` exports `terms/0`. It copies a command table (including a DEFINE_SPRITE of an 8×8 diamond and several DRAW_SPRITE / BLIT calls) to `$C100+`.
+`draw_scene.erl` exports `terms/0`. It copies a 4-frame command table
+(including DEFINE_SPRITE, DRAW_SPRITE, TONE, NOISE, and PRESENT) to
+`$C100+`.
 
 ```erlang
 {ok, Bin, _} = mv_asm:assemble(draw_scene:terms(), 16#0200),
@@ -57,10 +74,11 @@ Queue = mv6502:gpu_queue(M).
 ```bash
 cd visual
 python3 sample_queue.py
-python3 queue_renderer.py queue.json frame.png
+python3 queue_renderer.py queue.json frame.png sound.wav
 ```
 
-Requires Pillow.
+Produces `frame.png`, `frame-2.png`, `frame-3.png`, `frame-4.png`, and
+`sound.wav`. Requires Pillow (stdlib `wave` for audio).
 
 This is the software stand-in for the queue seam. The real Vulkan host
 (Stage 6) implements the same opcodes.

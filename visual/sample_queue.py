@@ -1,15 +1,12 @@
 #!/usr/bin/env python3
 """
-sample_queue.py — emit the same command stream the 6502 program in
-draw_scene.erl writes to $C100+.
-
-Produces queue.json for queue_renderer.py.
+sample_queue.py — emit an animated command stream (4 frames) plus tones
+that the 6502 program in draw_scene.erl would write to $C100+.
 """
 
 import json
 from pathlib import Path
 
-# 8x8 diamond / cross sprite (palette indices, 0 = transparent)
 SPRITE = [
     0,0,0,1,1,0,0,0,
     0,0,1,4,4,1,0,0,
@@ -21,47 +18,45 @@ SPRITE = [
     0,0,0,1,1,0,0,0,
 ]
 
-def table():
+def frame_bytes(n, sprite_x):
+    """Commands for one frame. n is 0..3 for slight variation."""
     t = [
-        # SET_COLOR ink, CLEAR
+        # clear
         0x01, 0x0E, 0x10, 0x0E,
         0x04,
-        # brass frame outline
+        # frame
         0x01, 0xD4, 0xA2, 0x4C,
         0x09, 20, 20, 280, 200,
-        # inner panel
+        # panel
         0x01, 0x17, 0x1C, 0x17,
         0x02, 30, 40, 260, 160,
-        # neon circles
+        # pulsing circle (radius grows)
         0x01, 0xD4, 0xA2, 0x4C,
-        0x08, 80, 100, 18,
-        0x07, 240, 100, 22,
-        # cross
-        0x0A, 40, 130, 240,
-        0x0B, 160, 50, 140,
-        # DEFINE_SPRITE id=1, 8x8
+        0x08, 80, 100, 14 + n * 2,
+        # moving sprite
         0x0D, 1, 8, 8,
     ]
     t += SPRITE
-    # draw it in a few places
-    t += [
-        0x0E, 1, 50, 70,
-        0x0E, 1, 70, 90,
-        0x0E, 1, 200, 80,
-        0x0E, 1, 220, 100,
-        # immediate blit of a small bar
-        0x0F, 140, 140, 16, 4,
-    ]
-    t += [1,1,4,4, 1,1,4,4, 1,1,4,4, 1,1,4,4] * 4  # 16x4 of brass/neon
-    # title
-    t += [
-        0x01, 0xE8, 0xE6, 0xDC,
-        0x05, 50, 160, 16,
-    ]
-    t += list(b"SOVEREIGN CIRCUIT")
-    t += [0x05, 110, 175, 6]
-    t += list(b"FABRIC")
-    t += [0xFF]
+    t += [0x0E, 1, sprite_x, 90]
+    # title only on last frame
+    if n == 3:
+        t += [
+            0x01, 0xE8, 0xE6, 0xDC,
+            0x05, 50, 160, 16,
+        ]
+        t += list(b"SOVEREIGN CIRCUIT")
+    # tone that rises
+    freq = 220 + n * 110
+    t += [0x10, freq & 0xFF, (freq >> 8) & 0xFF, 120]
+    if n == 2:
+        t += [0x11, 40]  # short noise
+    t += [0xFF]  # present this frame
+    return t
+
+def table():
+    t = []
+    for n in range(4):
+        t += frame_bytes(n, 40 + n * 40)
     return t
 
 def main():
@@ -71,7 +66,7 @@ def main():
         q.append([addr, b & 0xFF])
         addr += 1
     Path("queue.json").write_text(json.dumps(q, indent=2))
-    print(f"wrote queue.json ({len(q)} bytes)")
+    print(f"wrote queue.json ({len(q)} bytes, 4 frames)")
 
 if __name__ == "__main__":
     main()
