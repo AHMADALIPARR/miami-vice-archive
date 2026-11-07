@@ -35,12 +35,24 @@ A CLI runner (`runtime/run.sh`) takes a binary, an origin, and a step budget, wr
 
 ### Software visual host (`visual/`)
 
-The GPU queue already exists. `visual/queue_renderer.py` consumes the ordered `{address, byte}` list and produces a 320×240 PNG. A tiny opcode vocabulary is defined (SET_COLOR, FILL_RECT, DRAW_LINE, CLEAR, TEXT, PRESENT). `visual/sample_queue.py` emits a Miami-Vice-flavored command stream that renders a branded frame.
+The GPU queue already exists. `visual/queue_renderer.py` consumes the ordered `{address, byte}` list and produces a 320×240 PNG.
+
+Expanded opcode set: SET_COLOR, FILL_RECT, DRAW_LINE, CLEAR, TEXT, PLOT, CIRCLE, FILL_CIRCLE, RECT_OUTLINE, HLINE, VLINE, SET_ORIGIN, PRESENT.
+
+`visual/draw_scene.erl` is a 6502 program (mv_asm terms) that copies a command table to `$C100+`. Every STA into the queue window is captured by the runtime. `visual/sample_queue.py` emits the identical byte stream so the frame can be rendered without Erlang.
 
 ```bash
 cd visual
 python3 sample_queue.py
 python3 queue_renderer.py queue.json frame.png
+```
+
+To run the real 6502 program:
+
+```erlang
+{ok, Bin, _} = mv_asm:assemble(draw_scene:terms(), 16#0200),
+{ok, _Out, M} = mv6502:run_binary(Bin, 16#0200, 100000),
+Queue = mv6502:gpu_queue(M).
 ```
 
 This is the software stand-in for the queue seam. The real Vulkan host remains Stage 6 (owner’s carve, separate repo).
@@ -76,7 +88,7 @@ Vulkan render (Stage 6)
 - [STATUS.md](STATUS.md) — verified facts vs. staged work
 - [AGENTS.md](AGENTS.md) — repository laws (verify before commit, provenance, claims match execution)
 - [LICENSE](LICENSE) — sovereign license
-- [visual/README.md](visual/README.md) — command vocabulary and how to render a frame
+- [visual/README.md](visual/README.md) — command vocabulary, 6502 program, and how to render a frame
 
 ## Related
 
