@@ -1,4 +1,5 @@
-%% draw_scene.erl — 6502 program that emits a richer GPU command stream.
+%% draw_scene.erl — 6502 program that emits a richer GPU command stream
+%% including sprite define + draw and an immediate blit.
 %%
 %% Assemble and run with the Stage-1 runtime:
 %%
@@ -6,18 +7,13 @@
 %%   {ok, _Out, M} = mv6502:run_binary(Bin, 16#0200, 100000),
 %%   Queue = mv6502:gpu_queue(M).
 %%
-%% Then feed Queue to visual/queue_renderer.py (as [[addr,byte],...]).
-%%
-%% The program copies a byte table to consecutive addresses starting at
-%% $C100. Every STA to that window is captured by the runtime in order.
+%% Then feed Queue to visual/queue_renderer.py.
 
 -module(draw_scene).
 -export([terms/0]).
 
-%% terms/0 -> list of mv_asm terms. Origin $0200 (banked program window).
 terms() ->
     [
-     %% copy table to queue window
      {ldx, {imm, 0}},
      {label, copy},
      {lda, {abx, data}},
@@ -33,7 +29,17 @@ terms() ->
 
 table_len() -> length(table()).
 
-%% The command stream the 6502 writes (same bytes the Python sample emits).
+%% 8x8 diamond sprite (palette indices, 0 = transparent)
+sprite() ->
+    [0,0,0,1,1,0,0,0,
+     0,0,1,4,4,1,0,0,
+     0,1,4,2,2,4,1,0,
+     1,4,2,7,7,2,4,1,
+     1,4,2,7,7,2,4,1,
+     0,1,4,2,2,4,1,0,
+     0,0,1,4,4,1,0,0,
+     0,0,0,1,1,0,0,0].
+
 table() ->
     [
      %% SET_COLOR ink, CLEAR
@@ -41,25 +47,33 @@ table() ->
      16#04,
      %% brass frame
      16#01, 16#D4, 16#A2, 16#4C,
-     16#09, 20, 20, 280, 200,          % RECT_OUTLINE
+     16#09, 20, 20, 280, 200,
      %% inner panel
      16#01, 16#17, 16#1C, 16#17,
-     16#02, 30, 40, 260, 160,          % FILL_RECT
+     16#02, 30, 40, 260, 160,
      %% neon circles
      16#01, 16#D4, 16#A2, 16#4C,
-     16#08, 80, 100, 18,               % FILL_CIRCLE
-     16#07, 240, 100, 22,              % CIRCLE
-     %% cross lines
-     16#0A, 40, 130, 240,              % HLINE
-     16#0B, 160, 50, 140,              % VLINE
+     16#08, 80, 100, 18,
+     16#07, 240, 100, 22,
+     %% cross
+     16#0A, 40, 130, 240,
+     16#0B, 160, 50, 140,
+     %% DEFINE_SPRITE id=1 8x8
+     16#0D, 1, 8, 8
+    ] ++ sprite() ++
+    [
+     %% DRAW_SPRITE in a few places
+     16#0E, 1, 50, 70,
+     16#0E, 1, 70, 90,
+     16#0E, 1, 200, 80,
+     16#0E, 1, 220, 100,
+     %% BLIT a 16x4 bar
+     16#0F, 140, 140, 16, 4
+    ] ++ lists:flatten(lists:duplicate(16, [1,1,4,4])) ++
+    [
      %% title
      16#01, 16#E8, 16#E6, 16#DC,
-     16#05, 50, 160, 16                % TEXT "SOVEREIGN CIRCUIT"
-     | "SOVEREIGN CIRCUIT" ++
-     [
-      16#05, 110, 175, 6               % TEXT "FABRIC"
-     | "FABRIC" ] ++
-     [
-      16#FF                            % PRESENT
-     ]
-    ].
+     16#05, 50, 160, 16
+    ] ++ "SOVEREIGN CIRCUIT" ++
+    [16#05, 110, 175, 6] ++ "FABRIC" ++
+    [16#FF].

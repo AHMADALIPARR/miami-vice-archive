@@ -9,6 +9,18 @@ Produces queue.json for queue_renderer.py.
 import json
 from pathlib import Path
 
+# 8x8 diamond / cross sprite (palette indices, 0 = transparent)
+SPRITE = [
+    0,0,0,1,1,0,0,0,
+    0,0,1,4,4,1,0,0,
+    0,1,4,2,2,4,1,0,
+    1,4,2,7,7,2,4,1,
+    1,4,2,7,7,2,4,1,
+    0,1,4,2,2,4,1,0,
+    0,0,1,4,4,1,0,0,
+    0,0,0,1,1,0,0,0,
+]
+
 def table():
     t = [
         # SET_COLOR ink, CLEAR
@@ -22,12 +34,27 @@ def table():
         0x02, 30, 40, 260, 160,
         # neon circles
         0x01, 0xD4, 0xA2, 0x4C,
-        0x08, 80, 100, 18,          # FILL_CIRCLE
-        0x07, 240, 100, 22,         # CIRCLE
+        0x08, 80, 100, 18,
+        0x07, 240, 100, 22,
         # cross
-        0x0A, 40, 130, 240,         # HLINE
-        0x0B, 160, 50, 140,         # VLINE
-        # title
+        0x0A, 40, 130, 240,
+        0x0B, 160, 50, 140,
+        # DEFINE_SPRITE id=1, 8x8
+        0x0D, 1, 8, 8,
+    ]
+    t += SPRITE
+    # draw it in a few places
+    t += [
+        0x0E, 1, 50, 70,
+        0x0E, 1, 70, 90,
+        0x0E, 1, 200, 80,
+        0x0E, 1, 220, 100,
+        # immediate blit of a small bar
+        0x0F, 140, 140, 16, 4,
+    ]
+    t += [1,1,4,4, 1,1,4,4, 1,1,4,4, 1,1,4,4] * 4  # 16x4 of brass/neon
+    # title
+    t += [
         0x01, 0xE8, 0xE6, 0xDC,
         0x05, 50, 160, 16,
     ]
