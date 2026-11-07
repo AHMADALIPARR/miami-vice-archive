@@ -1,12 +1,10 @@
 # Miami Vice Archive
 
-<video width="320" height="240" controls autoplay loop muted>
-  <source src="visual/animation.mp4" type="video/mp4">
-</video>
+![Animation](visual/animation.gif)
 
 **A verified 6502 container runtime that executes archived source on the memory map drawn in the poster.**
 
-The clip above is the software visual host running today: four frames of a 320×240 canvas driven by the Stage-1 GPU command queue, with square-wave tones and a short noise burst. A 6502 program (`visual/draw_scene.erl`) writes the opcodes; `visual/queue_renderer.py` turns the ordered writes into PNGs and a WAV; ffmpeg stitches them into the MP4.
+The clip above is the software visual host running today: four frames of a 320×240 canvas driven by the Stage-1 GPU command queue. A 6502 program (`visual/draw_scene.erl`) writes the opcodes; `visual/queue_renderer.py` turns the ordered writes into PNGs. The MP4 with sound is at [`visual/animation.mp4`](visual/animation.mp4).
 
 This is not a finished game. It is the execution architecture that will eventually run BASIC listings from Miami Vice Magazine (and related machine-code reconstructions). Listings enter as data, are lowered through a 6502 IR into ROPE/AGC assembly, and run inside a banked memory runtime with a declared map, an I/O port, and a GPU command queue. Compute and rendering layers sit behind it; the native host is a Jetson.
 
@@ -51,7 +49,7 @@ Opcode set: SET_COLOR, FILL_RECT, DRAW_LINE, CLEAR, TEXT, PLOT, CIRCLE, FILL_CIR
 cd visual
 python3 sample_queue.py
 python3 queue_renderer.py queue.json frame.png sound.wav
-# then the ffmpeg command in visual/README.md to rebuild animation.mp4
+# then the ffmpeg command in visual/README.md to rebuild animation.mp4 / animation.gif
 ```
 
 To run the real 6502 program:
