@@ -57,6 +57,28 @@ right, and a rising tone.
 `0x10` and `0x11` are collected in order and written to `sound.wav`
 (8-bit mono, 8000 Hz). Events play sequentially.
 
+## Make a video
+
+After the frames and WAV exist:
+
+```bash
+ffmpeg -y \
+  -loop 1 -t 0.5 -i frame.png \
+  -loop 1 -t 0.5 -i frame-2.png \
+  -loop 1 -t 0.5 -i frame-3.png \
+  -loop 1 -t 0.5 -i frame-4.png \
+  -i sound.wav \
+  -filter_complex "[0:v][1:v][2:v][3:v]concat=n=4:v=1:a=0[v]" \
+  -map "[v]" -map 4:a \
+  -c:v libx264 -crf 23 -preset medium -pix_fmt yuv420p \
+  -c:a aac -b:a 96k \
+  -movflags +faststart \
+  -t 2.0 \
+  animation.mp4
+```
+
+Produces a 2-second H.264/AAC MP4 (each frame held 0.5 s, with the sound track).
+
 ## 6502 program
 
 `draw_scene.erl` exports `terms/0`. It copies a 4-frame command table
@@ -75,10 +97,10 @@ Queue = mv6502:gpu_queue(M).
 cd visual
 python3 sample_queue.py
 python3 queue_renderer.py queue.json frame.png sound.wav
+# then the ffmpeg command above
 ```
 
-Produces `frame.png`, `frame-2.png`, `frame-3.png`, `frame-4.png`, and
-`sound.wav`. Requires Pillow (stdlib `wave` for audio).
+Requires Pillow (stdlib `wave` for audio) and ffmpeg for the video.
 
 This is the software stand-in for the queue seam. The real Vulkan host
 (Stage 6) implements the same opcodes.
