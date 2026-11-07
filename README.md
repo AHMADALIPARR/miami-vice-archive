@@ -8,7 +8,7 @@ This is not a finished game. It is the execution architecture that will eventual
 
 The poster above is the specification. Everything below is what actually runs today.
 
-## What runs today (Stage 1)
+## What runs today (Stage 1 + software visual host)
 
 `runtime/` contains a banked 6502 virtual machine (`mv6502.erl`) and a small assembler (`mv_asm.erl`). The CPU core is the verified engine from `ace-sovereign`; the memory layer implements the poster’s map:
 
@@ -33,12 +33,24 @@ The poster above is the specification. Everything below is what actually runs to
 
 A CLI runner (`runtime/run.sh`) takes a binary, an origin, and a step budget, writes the `$FE00` output bytes to stdout, and reports the halt reason on stderr. The “HI” program (LDA/STA to `$FE00`) produces the bytes `HI` and exits clean on `BRK`.
 
+### Software visual host (`visual/`)
+
+The GPU queue already exists. `visual/queue_renderer.py` consumes the ordered `{address, byte}` list and produces a 320×240 PNG. A tiny opcode vocabulary is defined (SET_COLOR, FILL_RECT, DRAW_LINE, CLEAR, TEXT, PRESENT). `visual/sample_queue.py` emits a Miami-Vice-flavored command stream that renders a branded frame.
+
+```bash
+cd visual
+python3 sample_queue.py
+python3 queue_renderer.py queue.json frame.png
+```
+
+This is the software stand-in for the queue seam. The real Vulkan host remains Stage 6 (owner’s carve, separate repo).
+
 ## What does not run yet
 
 - No Miami Vice Magazine BASIC listing has been ingested.
 - No PureBasic parser, no 6502-to-ROPE/AGC lowering, no AGC assembler for the corpus.
-- No Vulkan host, no SPIR-V, no off-screen framebuffer, no present. Visual output is Stage 6 (`jetson-vulkan-host`).
-- There are no gameplay screenshots because there is no game binary and no render path.
+- No real Vulkan device, SPIR-V, or unified-memory buffer ownership. The software renderer is a host-side interpreter of the same command contract the Vulkan host will implement.
+- There is still no full game binary; the sample frame is a command-stream demo.
 
 ## Pipeline (the poster’s top strip)
 
@@ -51,6 +63,8 @@ ROPE / AGC assembly
     ↓
 Container & memory runtime  ← you are here (Stage 1, verified)
     ↓
+software queue renderer     ← visual host (this tree)
+    ↓
 Pascal / Fortran compute
     ↓
 Vulkan render (Stage 6)
@@ -62,6 +76,7 @@ Vulkan render (Stage 6)
 - [STATUS.md](STATUS.md) — verified facts vs. staged work
 - [AGENTS.md](AGENTS.md) — repository laws (verify before commit, provenance, claims match execution)
 - [LICENSE](LICENSE) — sovereign license
+- [visual/README.md](visual/README.md) — command vocabulary and how to render a frame
 
 ## Related
 
@@ -70,4 +85,4 @@ Vulkan render (Stage 6)
 
 ---
 
-*Built to the poster. Verified by execution. Visuals come later.*
+*Built to the poster. Verified by execution. Visuals start at the queue.*
